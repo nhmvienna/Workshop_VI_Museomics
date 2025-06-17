@@ -1,0 +1,7 @@
+1387307 3 11
+0 2L type=golden_path; loc=2L:1..23513712; ID=2L; dbxref=GB:AE014134,GB:AE014134,REFSEQ:NT_033779; MD5=b6a98b7c676bdaa11ec9521ed15aff2b; length=23513712; release=r6.51; species=Dmel;
+0 100000 0
+0 mitochondrion_genome type=golden_path; loc=mitochondrion_genome:1..19524; ID=mitochondrion_genome; dbxref=GB:KJ947872,REFSEQ:NC_024511; MD5=e53875ad4457fb4a0a894e31495449e6; length=19524; release=r6.51; species=Dmel;
+100000 19524 0
+0 wMel (null)
+119524 1267783 0

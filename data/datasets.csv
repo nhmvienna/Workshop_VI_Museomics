@@ -1,0 +1,7 @@
+Library,Name,Age,City,Country,Wolb,Type,SRA
+DGRP370,DGRP370,2003,Raleigh,USA,wMel,recent,SRR834539
+DGRP338,DGRP338,2003,Raleigh,USA,wMelCS,recent,SRR834513
+ZI268,ZI268,2003,Ziawonga,Zambia,wMel,recent,SRR189425
+HG_15,19SL15,1933,Lund,Sweden,unknown,historic,SRR23876580
+HG0027,19SL3,1933,Lund,Sweden,unknown,historic,SRR23876574
+HG0029,18DZ5,1899,Zealand,Denmark,unknown,historic,SRR23876565
