@@ -28,10 +28,10 @@ mamba install \
     -c conda-forge \
     fastp seqkit minimap2 bwa samtools blast bcftools r r-base r-tidyverse bioconductor-ggtree r-phangorn r-phytools r-ape r-patchwork
 
+conda deactivate
+
 ## (2b) install mapdamage2 in a separate environment
 mamba create \
     -p ${WD}/scripts/mapdamage2 \
     -y \
     -c bioconda mapdamage2
-
-conda deactivate

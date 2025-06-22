@@ -18,7 +18,7 @@ This document describes the bioinformatics workflow for processing and analyzing
 
 ```bash
 ## set Working directory
-WD=<your/path/to/MuseomicsWorkshop2025>
+WD=/Users/martinkapun/Documents/GitHub/MuseomicsWorkshop2025
 #WD=/media/inter/mkapun/projects/MuseomicsWorkshop2025
 
 ## make sure conda and mamba are installed on your system
