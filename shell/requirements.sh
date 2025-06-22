@@ -1,6 +1,8 @@
 #WD=/media/inter/mkapun/projects/MuseomicsWorkshop2025
 WD=$1
 
+eval "$(conda shell.bash hook)"
+
 conda create \
     -p ${WD}/scripts/programs \
     -y \

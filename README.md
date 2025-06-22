@@ -8,11 +8,11 @@ This document describes the bioinformatics workflow for processing and analyzing
 
 ### (a) System Requirements
 
-- Linux/Unix (macos) system with a BASH terminal
-- app. 10GB free space
-- 16GB RAM / 4 cores
-- [VScode](https://code.visualstudio.com/) and [Markdown Preview Enhanced](https://marketplace.visualstudio.com/items?itemName=shd101wyy.markdown-preview-enhanced) installed
-- [Conda](https://anaconda.org/anaconda/conda) installed and in PATH
+- **Linux/Unix (macos) system** with a **BASH terminal**. Note that this workshop is **not compatible with Windows systems**, but you can use the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/install) to run the commands. Moreover, please not the macos terminal is now by default a ZSH terminal, so you need to change the shell to BASH by running `chsh -s /bin/bash` in the terminal.
+- app. **10GB** free space.
+- **>= 16GB RAM / >= 4 cores**
+- **[VScode](https://code.visualstudio.com/)** and [Markdown Preview Enhanced](https://marketplace.visualstudio.com/items?itemName=shd101wyy.markdown-preview-enhanced) installed to view this document and execute the code snippets.
+- **[Conda](https://anaconda.org/anaconda/conda) installed and in PATH** so that you can run `conda` commands in the terminal. If you don't have conda installed, you can install it by following the instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
 
 ### (b) Install required software
 
@@ -59,8 +59,8 @@ tar -xzf ${WD}/data/mapDamage2.tar.gz -C ${WD}/results/mapDamage
 Preview the first 10 lines of the forward read file:
 
 ```bash
-less ${WD}/data/raw_reads/ZI268_1.fastq.gz
-less ${WD}/data/raw_reads/18DZ5_1.fastq.gz
+gunzip -c ${WD}/data/raw_reads/ZI268_1.fastq.gz | less
+gunzip -c ${WD}/data/raw_reads/18DZ5_1.fastq.gz | less
 ```
 
 >*QUESTIONS*:  
@@ -104,8 +104,8 @@ done <${WD}/data/datasets.csv
 Let's have a look at the HTML output files:
 
 ```bash
-firefox ${WD}/data/trimmed_reads/18DZ5.html
-firefox ${WD}/data/trimmed_reads/ZI268.html
+open ${WD}/data/trimmed_reads/18DZ5.html
+open ${WD}/data/trimmed_reads/ZI268.html
 ```
 
 >*QUESTIONS*:  
@@ -185,7 +185,7 @@ done <${WD}/data/datasets.csv
 OK, let's have a look at the tabular output file.
 
 ```bash
-less ${WD}/results/contamination/BLAST.tsv
+less  ${WD}/results/contamination/BLAST.tsv
 ```
 
 >*QUESTIONS*:  
@@ -498,7 +498,7 @@ bcftools mpileup -Ou \
     bcftools call -mv --ploidy 2 -Ou |
     bcftools view -v snps -Oz -o ${WD}/results/SNPs/2L.diploid.vcf.gz
 
-python ${WD}/scripts/DiploVCF2Phylip.py \
+python3 ${WD}/scripts/DiploVCF2Phylip.py \
     --input ${WD}/results/SNPs/2L.diploid.vcf.gz \
     --MaxPropGaps 0.1 \
     --MinCov 30 \
@@ -514,7 +514,7 @@ bcftools mpileup -Ou \
     bcftools call -mv --ploidy 1 -Ou |
     bcftools view -v snps -Oz -o ${WD}/results/SNPs/mito.haploid.vcf.gz
 
-python ${WD}/scripts/HaploVCF2Phylip.py \
+python3 ${WD}/scripts/HaploVCF2Phylip.py \
     --input ${WD}/results/SNPs/mito.haploid.vcf.gz \
     --MinAlt 1 \
     --MaxPropGaps 0.7 \
@@ -531,7 +531,7 @@ bcftools mpileup -Ou \
     bcftools call -mv --ploidy 1 -Ou |
     bcftools view -v snps -Oz -o ${WD}/results/SNPs/Wolbachia.haploid.vcf.gz
 
-python ${WD}/scripts/HaploVCF2Phylip.py \
+python3 ${WD}/scripts/HaploVCF2Phylip.py \
     --input ${WD}/results/SNPs/Wolbachia.haploid.vcf.gz \
     --MinAlt 1 \
     --MaxPropGaps 0.5 \
@@ -592,7 +592,7 @@ ggsave('${WD}/results/SNPs/combined_phylo_trees.png', combined_plot, width = 12,
 Finally, we exclude the potentially contaminated sample and re-plot phylogenetic trees:
 
 ```bash
-python ${WD}/scripts/HaploVCF2Phylip.py \
+python3 ${WD}/scripts/HaploVCF2Phylip.py \
     --input ${WD}/results/SNPs/Wolbachia.haploid.vcf.gz \
     --MinAlt 1 \
     --MaxPropGaps 0.5 \

@@ -397,7 +397,7 @@ bcftools mpileup -Ou \
     bcftools call -mv --ploidy 2 -Ou |
     bcftools view -v snps -Oz -o "${WD}/results/SNPs/2L.diploid.vcf.gz"
 
-python "${WD}/scripts/DiploVCF2Phylip.py" \
+python3 "${WD}/scripts/DiploVCF2Phylip.py" \
     --input "${WD}/results/SNPs/2L.diploid.vcf.gz" \
     --MaxPropGaps 0.1 \
     --MinCov 30 \
@@ -413,7 +413,7 @@ bcftools mpileup -Ou \
     bcftools call -mv --ploidy 1 -Ou |
     bcftools view -v snps -Oz -o "${WD}/results/SNPs/mito.haploid.vcf.gz"
 
-python "${WD}/scripts/HaploVCF2Phylip.py" \
+python3 "${WD}/scripts/HaploVCF2Phylip.py" \
     --input "${WD}/results/SNPs/mito.haploid.vcf.gz" \
     --MinAlt 1 \
     --MaxPropGaps 0.7 \
@@ -430,7 +430,7 @@ bcftools mpileup -Ou \
     bcftools call -mv --ploidy 1 -Ou |
     bcftools view -v snps -Oz -o "${WD}/results/SNPs/Wolbachia.haploid.vcf.gz"
 
-python "${WD}/scripts/HaploVCF2Phylip.py" \
+python3 "${WD}/scripts/HaploVCF2Phylip.py" \
     --input "${WD}/results/SNPs/Wolbachia.haploid.vcf.gz" \
     --MinAlt 1 \
     --MaxPropGaps 0.5 \
@@ -477,7 +477,7 @@ ggsave('${WD}/results/SNPs/combined_phylo_trees.png', combined_plot, width = 12,
 # C) What does the tree based on 2L depict?
 
 # Exclude potentially contaminated sample and re-plot phylogenetic trees
-python "${WD}/scripts/HaploVCF2Phylip.py" \
+python3 "${WD}/scripts/HaploVCF2Phylip.py" \
     --input "${WD}/results/SNPs/Wolbachia.haploid.vcf.gz" \
     --MinAlt 1 \
     --MaxPropGaps 0.5 \
