@@ -38,8 +38,8 @@ wget -O raw_reads.tar.gz "https://filesender.aco.net/download.php?token=18816b43
 tar -xzf ${WD}/data/raw_reads.tar.gz -C ${WD}/data/raw_reads
 
 ## optionally download mapDamage2 results
-mkdir ${WD}/results/mapDamage
-wget -O mapDamage2.tar.gz "https://filesender.aco.net/download.php?token=cc26f12d-2afe-4126-8383-ff3597b5412c&files_ids=896942"
+cd ${WD}/data && mkdir -p ${WD}/results/mapDamage
+wget -O mapDamage2.tar.gz "https://filesender.aco.net/download.php?token=30903ed5-4981-4060-8232-f2843cd29779&files_ids=901473"
 tar -xzf ${WD}/data/mapDamage2.tar.gz -C ${WD}/results/mapDamage
 ```
 
@@ -323,18 +323,18 @@ while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
     if [[ "${Library}" != "Library" ]]; then
         echo "Processing library ${Name}"
 
-        ## run mapDamage2
+        # run mapDamage2
         mapDamage -i ${WD}/results/minimap2/${Name}.bam \
             -r ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
             --rescale \
             --folder=${WD}/results/mapDamage/${Name}
 
-        ## convert PDFs to PNGs
-        convert -density 300 ${WD}/results/mapDamage/${Name}/Stats_out_MCMC_post_pred.pdf \
-            -quality 90 ${WD}/results/mapDamage/${Name}/Stats_out_MCMC_post_pred.png
+        ## convert PDFs to PNGs (only works on Linux systems)
+        for pdf in ${WD}/results/mapDamage/${Name}/*.pdf; do
+            png=${pdf%.pdf}.png
+            convert -density 300 $pdf -quality 90 $png
+        done
 
-        convert -density 300 ${WD}/results/mapDamage/${Name}/Stats_out_MCMC_hist.pdf \
-            -quality 90 ${WD}/results/mapDamage/${Name}/Stats_out_MCMC_hist.png
     fi
 done <${WD}/data/datasets.csv
 
