@@ -484,6 +484,9 @@ At first we are liberal and even include the historic sample with very low cover
 >${WD}/results/minimap2/scaled_bam.list
 for i in ${WD}/results/mapDamage/*/*.rescaled.bam; do
     echo $i >>${WD}/results/minimap2/scaled_bam.list
+
+    ## make index for scaled BAM files
+    samtools index $i
 done
 
 ## make output folder
@@ -502,7 +505,6 @@ python3 ${WD}/scripts/DiploVCF2Phylip.py \
     --input ${WD}/results/SNPs/2L.diploid.vcf.gz \
     --MaxPropGaps 0.1 \
     --MinCov 30 \
-    --names 18DZ5,19SL15,19SL3,DGRP338,DGRP370,ZI268 \
     >${WD}/results/SNPs/2L.phy
 
 # Haploid region (mitochondrion_genome)
@@ -519,7 +521,6 @@ python3 ${WD}/scripts/HaploVCF2Phylip.py \
     --MinAlt 1 \
     --MaxPropGaps 0.7 \
     --MinCov 10 \
-    --names 18DZ5,19SL15,19SL3,DGRP338,DGRP370,ZI268 \
     >${WD}/results/SNPs/mito.phy
 
 # Haploid region (wMel)
@@ -536,7 +537,6 @@ python3 ${WD}/scripts/HaploVCF2Phylip.py \
     --MinAlt 1 \
     --MaxPropGaps 0.5 \
     --MinCov 5 \
-    --names 18DZ5,19SL15,19SL3,DGRP338,DGRP370,ZI268 \
     >${WD}/results/SNPs/Wolbachia.phy
 ```
 
@@ -597,8 +597,7 @@ python3 ${WD}/scripts/HaploVCF2Phylip.py \
     --MinAlt 1 \
     --MaxPropGaps 0.5 \
     --MinCov 5 \
-    --exclude 18DZ5,19SL3 \
-    --names 18DZ5,19SL15,19SL3,DGRP338,DGRP370,ZI268 \
+    --exclude 18DZ5.rescaled,19SL3.rescaled \
     >${WD}/results/SNPs/Wolbachia_no19SL3.phy
 ```
 

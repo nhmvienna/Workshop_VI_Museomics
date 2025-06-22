@@ -20,8 +20,6 @@ parser.add_option("--MinCov", dest="MC",
                   help="numerical parameter", default=4)
 parser.add_option("--MaxPropGaps", dest="MG",
                   help="numerical parameter", default=1)
-parser.add_option("--names", dest="NA",
-                  help="numerical parameter", default=1)
 parser.add_option("--exclude", dest="EX", help="Input file")
 
 (options, args) = parser.parse_args()
@@ -38,9 +36,6 @@ def load_data(x):
     else:
         y = open(x, "r", encoding="latin-1")
     return y
-
-
-NAME = options.NA.split(",")
 
 
 GTs = d(lambda: d(list))

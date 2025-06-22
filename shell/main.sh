@@ -386,6 +386,9 @@ mkdir -p "${WD}/results/SNPs" && cd "${WD}/results/SNPs"
 >"${WD}/results/minimap2/scaled_bam.list"
 for i in ${WD}/results/mapDamage/*/*.rescaled.bam; do
     echo "$i" >>"${WD}/results/minimap2/scaled_bam.list"
+
+    ## make index for each rescaled BAM file
+    samtools index "$i"
 done
 
 # Diploid region (2L)
