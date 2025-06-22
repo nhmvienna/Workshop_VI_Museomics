@@ -348,11 +348,11 @@ Now let's have a look at the results for a historic (18DZ5) and a recent (DGRP33
 
 #### 18DZ5 (historic)
 
-![18DZ5 proportion](results/mapDamage/18DZ5/Stats_out_MCMC_post_pred.png) ![18DZ5 posteriors](results/mapDamage/18DZ5/Stats_out_MCMC_hist.png)
+![18DZ5 proportion](results/mapDamage/18DZ5/Fragmisincorporation_plot.png) ![18DZ5 posteriors](results/mapDamage/18DZ5/Stats_out_MCMC_hist.png)
 
 #### DGRP338 (recent)
 
-![DGRP338 proportion](results/mapDamage/DGRP338/Stats_out_MCMC_post_pred.png) ![DGRP338 posteriors](results/mapDamage/DGRP338/Stats_out_MCMC_hist.png)
+![DGRP338 proportion](results/mapDamage/DGRP338/Fragmisincorporation_plot.png) ![DGRP338 posteriors](results/mapDamage/DGRP338/Stats_out_MCMC_hist.png)
 
 >*QUESTIONS*:  
 > A) How to interpret these plots?  
