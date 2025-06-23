@@ -1,6 +1,6 @@
 # Museomics Workshop 2025: Bioinformatics Pipeline
 
-This document describes the bioinformatics workflow for processing and analyzing sequencing data from the Museomics Workshop 2025.
+This document describes the bioinformatics workflow for processing and analyzing sequencing data for the Museomics Workshop 2025.
 
 ---
 
@@ -8,7 +8,7 @@ This document describes the bioinformatics workflow for processing and analyzing
 
 ### (a) System Requirements
 
-- **Linux/Unix (macos) system** with a **BASH terminal**. Note that this workshop is **not compatible with Windows systems**, but you can use the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/install) to run the commands. Moreover, please not the macos terminal is now by default a ZSH terminal, so you need to change the shell to BASH by running `chsh -s /bin/bash` in the terminal.
+- **Linux/Unix (macos) system** with a **BASH terminal**. Note that this workshop is **not compatible with Windows systems**, but you can use the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/install) to run the commands. Moreover, please note that the macos terminal is now by default a ZSH terminal, so you need to change the shell to BASH by running `chsh -s /bin/bash` in the terminal.
 - app. **10GB** free space.
 - **>= 16GB RAM / >= 4 cores**
 - **[VScode](https://code.visualstudio.com/)** and [Markdown Preview Enhanced](https://marketplace.visualstudio.com/items?itemName=shd101wyy.markdown-preview-enhanced) installed to view this document and execute the code snippets.
