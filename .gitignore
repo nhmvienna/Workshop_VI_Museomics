@@ -1,5 +1,6 @@
 ## ignore All files in data directory except datasets.csv
 data/*
+!data/Museomics_Workshop_StAndrews_2025.pdf
 !data/datasets.csv
 !data/refseq/
 data/refseq/*
