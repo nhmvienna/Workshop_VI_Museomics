@@ -18,8 +18,8 @@ This document describes the bioinformatics workflow for processing and analyzing
 
 ```bash
 ## set Working directory
-WD=/Users/martinkapun/Documents/GitHub/MuseomicsWorkshop2025
-#WD=/media/inter/mkapun/projects/MuseomicsWorkshop2025
+WD=</path/to/your/working/directory>
+#WD=/Users/martinkapun/Documents/GitHub/MuseomicsWorkshop2025
 
 ## make sure conda and mamba are installed on your system
 sh ${WD}/shell/requirements.sh ${WD}
@@ -353,6 +353,57 @@ Now let's have a look at the results for a historic (18DZ5) and a recent (DGRP33
 #### DGRP338 (recent)
 
 ![DGRP338 proportion](results/mapDamage/DGRP338/Fragmisincorporation_plot.png) ![DGRP338 posteriors](results/mapDamage/DGRP338/Stats_out_MCMC_hist.png)
+
+Let's summarize the results in a table across all libraries based on the `Stats_out_MCMC_iter_summ_stat.csv files`
+
+```bash
+## make output folder
+mkdir -p ${WD}/results/mapDamage && cd ${WD}/results/mapDamage
+## make empty output file
+echo "Name Theta DeltaD DeltaS Lambda">${WD}/results/mapDamage/MapDamage_summary.txt
+
+## loop through libraries in datasets.csv
+while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
+    if [[ "${Library}" != "Library" ]]; then
+        echo "Processing library ${Name}"
+        awk -F "," -v "V"=${Name} '/Mean/ {print V, $2, $3, $4, $5}' ${WD}/results/mapDamage/${Name}/Stats_out_MCMC_iter_summ_stat.csv >> ${WD}/results/mapDamage/MapDamage_summary.txt
+    fi
+done <${WD}/data/datasets.csv
+```
+
+Now plot the mean values across all libraries
+
+```bash
+${WD}/scripts/programs/bin/Rscript -e "
+library(tidyverse)
+
+## Load the data
+data <- read.table('${WD}/results/mapDamage/MapDamage_summary.txt', header = TRUE, sep = ' ')
+data.long<-reshape(data,
+    direction='long',
+    varying=list(colnames(data)[2:ncol(data)]),
+    timevar='Parameter',
+    times=colnames(data)[2:ncol(data)])
+
+# plot the coverage distribution by region and library
+ggplot(data.long, aes(x = Name, y = Theta, fill = Name)) +
+    geom_bar(stat = 'identity', position = 'dodge') +
+    labs(title = 'Briggs Paramters',
+         x = 'Name',
+         y = 'Value') +
+    theme_bw() +
+    facet_wrap(.~Parameter , scales = 'free_y') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Save the plot as PDF and PNG
+ggsave('${WD}/results/mapDamage/MapDamage_summary.pdf', width = 8, height = 4)
+ggsave('${WD}/results/mapDamage/MapDamage_summary.png', width = 8, height = 4)
+"
+```
+
+#### Briggs Parameters
+
+![Briggs parameters](results/mapDamage/MapDamage_summary.png)
 
 >*QUESTIONS*:  
 > A) How to interpret these plots?  
