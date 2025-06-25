@@ -8,6 +8,7 @@ data/refseq/*
 data/refseq/dmel/*
 !data/refseq/dmel/dmel_wMel_2L_100K*
 results/
+.results
 scripts/mapdamage2
 scripts/programs
 .DS_Store
