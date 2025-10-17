@@ -6,42 +6,35 @@ This document describes the bioinformatics workflow for processing and analyzing
 
 ## 1. Preparation
 
-### (a) System Requirements
-
-- **Linux/Unix (macos) system** with a **BASH terminal**. Note that this workshop is **not compatible with Windows systems**, but you can use the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/install) to run the commands. Moreover, please note that the macos terminal is now by default a ZSH terminal, so you need to change the shell to BASH by running `chsh -s /bin/bash` in the terminal.
-- app. **10GB** free space.
-- **>= 16GB RAM / >= 4 cores**
-- **[VScode](https://code.visualstudio.com/)** and [Markdown Preview Enhanced](https://marketplace.visualstudio.com/items?itemName=shd101wyy.markdown-preview-enhanced) installed to view this document and execute the code snippets.
-- **[Conda](https://anaconda.org/anaconda/conda) installed and in PATH** so that you can run `conda` commands in the terminal. If you don't have conda installed, you can install it by following the instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
-
-### (b) Install required software
+### (b) Copy required software
 
 ```bash
-## set Working directory
-WD=</path/to/your/working/directory>
-#WD=/media/inter/mkapun/projects/MuseomicsWorkshop2025
+# Set Working directory
+WD="<your/path/to/Workshop_VI_Museomics>"
+# WD="/home/mkapun/github/Workshop_VI_Museomics"
 
-## make sure conda and mamba are installed on your system
-sh ${WD}/shell/requirements.sh ${WD}
+# Go to working directory
+cd ${WD}
+
+# copy scripts and programs 
+cp -r /media/scratch/Museomics_WS_stuff/scripts .
 ```
 
-### (c) Download and decompress the raw input FASTQ data
+### (b) Download and decompress the raw input FASTQ data
 
 ```bash
-## create and change to data directory
-cd ${WD}/data && mkdir ${WD}/data/raw_reads
+## Copy and extract raw sequencing reads.
+mkdir -p ${WD}/{data,results,QSUB}
+mkdir -p ${WD}/data/raw_reads
 
-## download raw reads
-wget -O raw_reads.tar.gz "https://filesender.aco.net/download.php?token=18816b43-8209-46cf-ae04-40cece8dc2c1&files_ids=895410"
-
-## untar the compressed folder within ${WD}/data
+# Untar the compressed folder within ${WD}/data
+cp /media/scratch/Museomics_WS_stuff/data/raw_reads.tar.gz data/
 tar -xzf ${WD}/data/raw_reads.tar.gz -C ${WD}/data/raw_reads
 
-## optionally download mapDamage2 results
-cd ${WD}/data && mkdir -p ${WD}/results/mapDamage
-wget -O mapDamage2.tar.gz "https://filesender.aco.net/download.php?token=30903ed5-4981-4060-8232-f2843cd29779&files_ids=901473"
+## Optionally download mapDamage2 results
+mkdir -p ${WD}/results/mapDamage
+cp /media/scratch/Museomics_WS_stuff/data/mapDamage2.tar.gz data/
 tar -xzf ${WD}/data/mapDamage2.tar.gz -C ${WD}/results/mapDamage
-```
 
 ## Datasets
 
@@ -56,7 +49,7 @@ tar -xzf ${WD}/data/mapDamage2.tar.gz -C ${WD}/results/mapDamage
 
 ## 2. Preview Raw FASTQ Data
 
-Preview the first 10 lines of the forward read file:
+Let's preview the first 10 lines of the forward read file:
 
 ```bash
 gunzip -c ${WD}/data/raw_reads/ZI268_1.fastq.gz | less
@@ -73,17 +66,35 @@ gunzip -c ${WD}/data/raw_reads/18DZ5_1.fastq.gz | less
 
 In our first analysis, we will focus on a subset of 1,000,000 reads from each of the datasets and test how trimming and adapter removal will influence the read lengths and base quality of the datasets.
 
+Loop through each library in datasets.csv and trim reads. As usual we will use OpenPBS to work jointly on our compute cluster:
+
 ```bash
+# First load fastp into your environment
 mkdir -p ${WD}/data/trimmed_reads && cd ${WD}/data/trimmed_reads
-conda activate ${WD}/scripts/programs
-```
 
-Loop through each library in datasets.csv and trim reads:
-
-```bash
+# Loop through each library in datasets.csv and trim reads
 while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
-    if [[ "${Library}" != "Library" ]]; then
-        echo "Processing library ${Name}"
+    if [[ ${Library} != "Library" ]]; then
+
+        echo """
+        #!/bin/sh
+
+        ## name of Job
+        #PBS -N FASTP_${Name}
+
+        ## Redirect output stream to this file.
+        #PBS -o ${WD}/data/trimmed_reads/${Name}_fastp.log
+
+        ## Stream Standard Output AND Standard Error to outputfile (see above)
+        #PBS -j oe
+
+        ## Select a maximum of 5 cores and 50gb of RAM
+        #PBS -l select=1:ncpus=5:mem=20gb
+
+        ##### load dependencies 
+        source /opt/anaconda3/etc/profile.d/conda.sh
+        conda activate ${WD}/scripts/programs
+
         fastp \
             -i ${WD}/data/raw_reads/${Name}_1.fastq.gz \
             -I ${WD}/data/raw_reads/${Name}_2.fastq.gz \
@@ -92,12 +103,18 @@ while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
             --merge \
             --merged_out ${WD}/data/trimmed_reads/${Name}_merged.fastq.gz \
             --length_required 25 \
+            --thread 5 \
             --dedup \
             --trim_poly_g \
             --html ${WD}/data/trimmed_reads/${Name}.html \
             --json ${WD}/data/trimmed_reads/${Name}.json \
             --detect_adapter_for_pe
+        """ >${WD}/QSUB/fastp_${Name}.sh
+        
+        # send to OpenPBS
+        qsub ${WD}/QSUB/fastp_${Name}.sh
     fi
+    
 done <${WD}/data/datasets.csv
 ```
 
@@ -121,54 +138,95 @@ In the next analysis, we will again focus on the trimmed subset of 1,000,000 rea
 Download mitochondrial genomes for contamination screening. We will focus on the focal species *Drosophila melanogaster* and other likely contaminants such as *Homo sapiens*, the carpet or museum beetle [*Anthrenus verbasci*](https://en.wikipedia.org/wiki/Varied_carpet_beetle), a common pest in museums, and in our case [*Gryllus bimaculatus*](https://en.wikipedia.org/wiki/Gryllus_bimaculatus).
 
 ```bash
+# Download mitochondrial genomes for contamination screening and build a BLAST database.
 mkdir -p ${WD}/data/refseq/contamination && cd ${WD}/data/refseq/contamination
 
-## Gryllus bimaculatus
+# Download and rename mitochondrial genomes
 wget "https://www.ncbi.nlm.nih.gov/sviewer/viewer.fcgi?id=PP230540.1&db=nuccore&report=fasta&format=text" -O Gryllus_bimaculatus_mito.fasta
-sed -i '' '1s/.*/>Gryllus_bimaculatus/' Gryllus_bimaculatus_mito.fasta
+sed -i '1s/.*/>Gryllus_bimaculatus/' Gryllus_bimaculatus_mito.fasta
 
-## Homo sapiens
 wget "https://www.ncbi.nlm.nih.gov/sviewer/viewer.fcgi?id=NC_012920.1&db=nuccore&report=fasta&format=text" -O Homo_sapiens_mito.fasta
-sed -i '' '1s/.*/>Homo_sapiens/' Homo_sapiens_mito.fasta
+sed -i '1s/.*/>Homo_sapiens/' Homo_sapiens_mito.fasta
 
-## Drosophila melanogaster
 wget "https://www.ncbi.nlm.nih.gov/sviewer/viewer.fcgi?id=NC_024511.2&db=nuccore&report=fasta&format=text" -O Drosophila_melanogaster_mito.fasta
-sed -i '' '1s/.*/>Drosophila_melanogaster/' Drosophila_melanogaster_mito.fasta
+sed -i '1s/.*/>Drosophila_melanogaster/' Drosophila_melanogaster_mito.fasta
 
-## Anthrenus verbasci
 wget "https://www.ncbi.nlm.nih.gov/sviewer/viewer.fcgi?id=PV608434.1&db=nuccore&report=fasta&format=text" -O Anthrenus_verbasci_mito.fasta
-sed -i '' '1s/.*/>Anthrenus_verbasci/' Anthrenus_verbasci_mito.fasta
+sed -i '1s/.*/>Anthrenus_verbasci/' Anthrenus_verbasci_mito.fasta
 
-## now concatenate all files into one
-cat *_mito.fasta > mitochondrial.fasta
+# Concatenate all files into one
+cat *_mito.fasta >mitochondrial.fasta
 ```
 
 Next, we will build a BLAST database based on these genomes to test for sequence similarity with our sequencing data.
 
 ```bash
-cd ${WD}/data/refseq/contamination
+# make BLAST database
+echo """
+#!/bin/sh
 
-## build nucleotide database 
-makeblastdb -in mitochondrial.fasta -dbtype nucl -out mitoDB
+## name of Job
+#PBS -N MakeDB
+
+## Redirect output stream to this file.
+#PBS -o ${WD}/data/refseq/contamination/MakeDB.log
+
+## Stream Standard Output AND Standard Error to outputfile (see above)
+#PBS -j oe
+
+## Select a maximum of 5 cores and 50gb of RAM
+#PBS -l select=1:ncpus=5:mem=20gb
+
+##### load dependencies 
+source /opt/anaconda3/etc/profile.d/conda.sh
+conda activate ${WD}/scripts/programs
+
+# Build nucleotide BLAST database
+makeblastdb \
+    -in ${WD}/data/refseq/contamination/mitochondrial.fasta \
+    -dbtype nucl \
+    -out ${WD}/data/refseq/contamination/mitoDB
+
+""" >${WD}/QSUB/makeblastdb.sh
+
+#send to OpenPBS
+qsub ${WD}/QSUB/makeblastdb.sh
 ```
 
 After that, we convert the trimmed FASTQ files to FASTA format and run BLAST against the mitochondrial database. We will only retain the top hit for each read if the e-value is lower than 1e-10 and the sequence similarity is larger than 90%.
 
 ```bash
-## make a results folder
+# Prepare results folder and output file
 mkdir -p ${WD}/results/contamination
-
-## make empty output file
 >${WD}/results/contamination/BLAST.tsv
 
-## loop through all files in dataset and convert the FASTQ files, then BLAST
-while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
-    if [[ "${Library}" != "Library" ]]; then
-        gunzip -c ${WD}/data/trimmed_reads/${Name}_1_trimmed.fastq.gz | \
+# Loop through all files in dataset, convert FASTQ to FASTA, then BLAST
+while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
+    if [[ ${Library} != "Library" ]]; then
+        gunzip -c ${WD}/data/trimmed_reads/${Name}_1_trimmed.fastq.gz |
             awk 'NR % 4 == 1 {print ">" substr($0, 2)} NR % 4 == 2 {print $0}' >${WD}/data/trimmed_reads/${Name}_trimmed.fasta
 
-        gunzip -c ${WD}/data/trimmed_reads/${Name}_merged.fastq.gz | \
+        gunzip -c ${WD}/data/trimmed_reads/${Name}_merged.fastq.gz |
             awk 'NR % 4 == 1 {print ">" substr($0, 2)} NR % 4 == 2 {print $0}' >>${WD}/data/trimmed_reads/${Name}_trimmed.fasta
+
+        echo """
+        #!/bin/sh
+
+        ## name of Job
+        #PBS -N BLAST_${Name}
+
+        ## Redirect output stream to this file.
+        #PBS -o ${WD}/data/refseq/contamination/${NAME}_blast.log
+
+        ## Stream Standard Output AND Standard Error to outputfile (see above)
+        #PBS -j oe
+
+        ## Select a maximum of 5 cores and 50gb of RAM
+        #PBS -l select=1:ncpus=5:mem=20gb
+
+        ##### load dependencies 
+        source /opt/anaconda3/etc/profile.d/conda.sh
+        conda activate ${WD}/scripts/programs
 
         blastn \
             -num_threads 4 \
@@ -176,10 +234,16 @@ while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
             -max_target_seqs 1 \
             -outfmt '6 qseqid sseqid slen qlen pident length mismatch evalue bitscore' \
             -db ${WD}/data/refseq/contamination/mitoDB \
-            -query ${WD}/data/trimmed_reads/${Name}_trimmed.fasta | \
-            awk -v Name=${Name} '$5>90 {print Name"\t"$0}' >>${WD}/results/contamination/BLAST.tsv
+            -query ${WD}/data/trimmed_reads/${Name}_trimmed.fasta |
+            awk -v Name='${Name}' '\$5>90 {print Name\"\t\"\$0}' >>${WD}/results/contamination/BLAST.tsv
+        
+        """ >${WD}/QSUB/blast_${Name}.sh
+
+        # send to OpenPBS
+        qsub -W block=true ${WD}/QSUB/blast_${Name}.sh
     fi
 done <${WD}/data/datasets.csv
+
 ```
 
 OK, let's have a look at the tabular output file.
@@ -226,6 +290,7 @@ ggsave('${WD}/results/contamination/BLAST_proportion_plot.png', plot, width = 10
 Finally, we are testing if there are differences in the read lengths between the endogenous and exogenous (i.e. contaminant) DNA.
 
 ```bash
+# Plot read length distributions for endogenous and exogenous DNA
 ${WD}/scripts/programs/bin/Rscript -e "
 library(tidyverse)
 df <- read_tsv('${WD}/results/contamination/BLAST.tsv', col_names = FALSE)
@@ -271,6 +336,42 @@ ggsave('${WD}/results/contamination/BLAST_proportion_plot_by_RL.png',
 > B) Do the read lengths differ between the exogenous and the endogenous DNA?  
 > C) What does this tell us about the contamination source?
 
+OK, let's automate this
+
+```bash
+echo """
+#!/bin/sh
+
+## name of Job
+#PBS -N ECMSD_19SL3
+
+## Redirect output stream to this file.
+#PBS -o ${WD}/data/refseq/contamination/19SL3_ecmsd.log
+
+## Stream Standard Output AND Standard Error to outputfile (see above)
+#PBS -j oe
+
+## Select a maximum of 5 cores and 50gb of RAM
+#PBS -l select=1:ncpus=5:mem=20gb
+
+bash /media/inter/pipelines/ECMSD/shell/ECMSD.sh \
+    --fwd ${WD}/data/trimmed_reads/19SL3_merged.fastq.gz \
+    --out ${WD}/results/contamination/ECMSD/19SL3 \
+    --threads 5 \
+    --Binsize 1000 \
+    --RMUS-threshold 0.15 \
+    --mapping_quality 20 \
+    --taxonomic-hierarchy genus \
+    --force
+
+""" >${WD}/QSUB/ecmsd_19SL3.sh
+
+#send to OpenPBS
+qsub ${WD}/QSUB/ecmsd_19SL3.sh
+```
+
+My newly developed ECMSD pipeline automates this test for contamination and compares the reads against ALL avaiailable mitochondrial genomes and uses the NCBI taxonomic backbone for hierarchical clustering by taxonomic level. Check this out: <https://github.com/capoony/ECMSD>
+
 ---
 
 ## 5. Testing for DNA degradation
@@ -278,22 +379,44 @@ ggsave('${WD}/results/contamination/BLAST_proportion_plot_by_RL.png',
 For this analysis, we will use another dataset that has been prefiltered to map to a specific genomic region (2L:1-100,000) of the *D. melanogaster* genome, to the *D. melanogaster* mitochondrion and to the wMel *Wolbachia* genome. In a first step, we are mapping reads to the three aforementioned genomes using [minimap2](https://github.com/lh3/minimap2), with specific settings for short reads. Since several partially overlapping reads have been merged during the trimming, we will map these separately from the paired-end reads and merge the BAM files afterwards.
 
 ```bash
+
+# Map reads to reference genomes using minimap2 and analyze DNA damage patterns with mapDamage2.
 mkdir -p ${WD}/results/minimap2 && cd ${WD}/results/minimap2
-while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
-    if [[ "${Library}" != "Library" ]]; then
-        echo "Processing library ${Name}"
-        minimap2 -ax sr --secondary=no -t 150 \
+while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
+    if [[ ${Library} != "Library" ]]; then
+        
+        echo """
+        #!/bin/sh
+
+        ## name of Job
+        #PBS -N Map_${Name}
+
+        ## Redirect output stream to this file.
+        #PBS -o ${WD}/results/minimap2/${Name}_map.log
+
+        ## Stream Standard Output AND Standard Error to outputfile (see above)
+        #PBS -j oe
+
+        ## Select a maximum of 5 cores and 50gb of RAM
+        #PBS -l select=1:ncpus=5:mem=20gb
+
+        ##### load dependencies
+        source /opt/anaconda3/etc/profile.d/conda.sh
+        conda activate ${WD}/scripts/programs
+
+        ## map reads to reference genome
+        minimap2 -ax sr --secondary=no -t 5 \
             ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
-            ${WD}/data/raw_reads/${Name}_2L_100K_1_trimmed.fastq.gz \
-            ${WD}/data/raw_reads/${Name}_2L_100K_2_trimmed.fastq.gz | \
-            samtools view -bS -F 4 - | \
+            ${WD}/data/trimmed_reads/${Name}_1_trimmed.fastq.gz \
+            ${WD}/data/trimmed_reads/${Name}_2_trimmed.fastq.gz |
+            samtools view -bS -F 4 - |
             samtools sort -o ${WD}/results/minimap2/${Name}_PE.bam
         samtools index ${WD}/results/minimap2/${Name}_PE.bam
 
-        minimap2 -ax sr --secondary=no -t 150 \
+        minimap2 -ax sr --secondary=no -t 5 \
             ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
-            ${WD}/data/raw_reads/${Name}_2L_100K_merged.fastq.gz | \
-            samtools view -bS -F 4 - | \
+            ${WD}/data/trimmed_reads/${Name}_merged.fastq.gz |
+            samtools view -bS -F 4 - |
             samtools sort -o ${WD}/results/minimap2/${Name}_merged.bam
         samtools index ${WD}/results/minimap2/${Name}_merged.bam
 
@@ -304,6 +427,12 @@ while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
 
         rm ${WD}/results/minimap2/${Name}_PE.bam*
         rm ${WD}/results/minimap2/${Name}_merged.bam*
+
+        """ >${WD}/QSUB/map_${Name}.sh
+
+        # send to OpenPBS
+        qsub ${WD}/QSUB/map_${Name}.sh
+
     fi
 done <${WD}/data/datasets.csv
 ```
@@ -311,19 +440,30 @@ done <${WD}/data/datasets.csv
 In the next step, we will employ [MapDamage2](https://ginolhac.github.io/mapDamage/) to investigate deamination patterns with respect to the fragment position. MapDamage2 is a tool designed to analyze DNA damage patterns in ancient DNA sequences, particularly focusing on the deamination of cytosines to uracils at the 5' and 3' end of fragments, which is a common form of damage in ancient samples. It provides insights into the age and preservation state of the DNA by modeling the expected damage patterns.
 
 ```bash
-## change conda environment
-conda deactivate
-conda activate ${WD}/scripts/mapdamage2
-
-## make output folder 
+# Run mapDamage2 to investigate deamination patterns
 mkdir -p ${WD}/results/mapDamage && cd ${WD}/results/mapDamage
+while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
+    if [[ ${Library} != "Library" ]]; then
 
-## loop through libraries in datasets.csv
-while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
-    if [[ "${Library}" != "Library" ]]; then
-        echo "Processing library ${Name}"
+        echo """
+        #!/bin/sh
 
-        # run mapDamage2
+        ## name of Job
+        #PBS -N MapDamage_${Name}
+
+        ## Redirect output stream to this file.
+        #PBS -o ${WD}/results/mapDamage/${Name}_mapDamage.log
+
+        ## Stream Standard Output AND Standard Error to outputfile (see above)
+        #PBS -j oe
+
+        ## Select a maximum of 5 cores and 50gb of RAM
+        #PBS -l select=1:ncpus=5:mem=20gb
+
+        ##### load dependencies
+        source /opt/anaconda3/etc/profile.d/conda.sh
+        conda activate ${WD}/scripts/mapdamage2
+
         mapDamage -i ${WD}/results/minimap2/${Name}.bam \
             -r ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
             --rescale \
@@ -331,17 +471,16 @@ while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
 
         ## convert PDFs to PNGs (only works on Linux systems)
         for pdf in ${WD}/results/mapDamage/${Name}/*.pdf; do
-            png=${pdf%.pdf}.png
-            convert -density 300 $pdf -quality 90 $png
+            png=\${pdf%.pdf}.png
+            convert -density 300 \$pdf -quality 90 \$png
         done
 
+        """ >${WD}/QSUB/mapDamage_${Name}.sh
+
+        # send to OpenPBS
+        qsub ${WD}/QSUB/mapDamage_${Name}.sh
     fi
 done <${WD}/data/datasets.csv
-
-## change environment
-conda deactivate
-conda activate ${WD}/scripts/programs
-
 ```
 
 Now let's have a look at the results for a historic (18DZ5) and a recent (DGRP338) library.
@@ -357,16 +496,17 @@ Now let's have a look at the results for a historic (18DZ5) and a recent (DGRP33
 Let's summarize the results in a table across all libraries based on the `Stats_out_MCMC_iter_summ_stat.csv files`
 
 ```bash
-## make output folder
+# make output folder
 mkdir -p ${WD}/results/mapDamage && cd ${WD}/results/mapDamage
-## make empty output file
-echo "Name Theta DeltaD DeltaS Lambda">${WD}/results/mapDamage/MapDamage_summary.txt
+# make empty output file
+echo "Name Theta DeltaD DeltaS Lambda" >${WD}/results/mapDamage/MapDamage_summary.txt
 
-## loop through libraries in datasets.csv
-while IFS=$"," read -r Library Name Age City Country Wolb Type SRA; do
-    if [[ "${Library}" != "Library" ]]; then
+# loop through libraries in datasets.csv
+while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
+    if [[ ${Library} != "Library" ]]; then
         echo "Processing library ${Name}"
-        awk -F "," -v "V"=${Name} '/Mean/ {print V, $2, $3, $4, $5}' ${WD}/results/mapDamage/${Name}/Stats_out_MCMC_iter_summ_stat.csv >> ${WD}/results/mapDamage/MapDamage_summary.txt
+        awk -F "," -v V=${Name} '/Mean/ {print V, $2, $3, $4, $5}' ${WD}/results/mapDamage/${Name}/Stats_out_MCMC_iter_summ_stat.csv \
+            >>${WD}/results/mapDamage/MapDamage_summary.txt
     fi
 done <${WD}/data/datasets.csv
 ```
@@ -374,6 +514,7 @@ done <${WD}/data/datasets.csv
 Now plot the mean values across all libraries
 
 ```bash
+# Now plot the mean values across all libraries
 ${WD}/scripts/programs/bin/Rscript -e "
 library(tidyverse)
 
@@ -386,7 +527,7 @@ data.long<-reshape(data,
     times=colnames(data)[2:ncol(data)])
 
 # plot the coverage distribution by region and library
-ggplot(data.long, aes(x = Name, y = Theta, fill = Name)) +
+PLOT<-ggplot(data.long, aes(x = Name, y = Theta, fill = Name)) +
     geom_bar(stat = 'identity', position = 'dodge') +
     labs(title = 'Briggs Paramters',
          x = 'Name',
@@ -396,8 +537,8 @@ ggplot(data.long, aes(x = Name, y = Theta, fill = Name)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Save the plot as PDF and PNG
-ggsave('${WD}/results/mapDamage/MapDamage_summary.pdf', width = 8, height = 4)
-ggsave('${WD}/results/mapDamage/MapDamage_summary.png', width = 8, height = 4)
+ggsave('${WD}/results/mapDamage/MapDamage_summary.pdf',PLOT, width = 8, height = 4)
+ggsave('${WD}/results/mapDamage/MapDamage_summary.png',PLOT, width = 8, height = 4)
 "
 ```
 
@@ -414,48 +555,60 @@ ggsave('${WD}/results/mapDamage/MapDamage_summary.png', width = 8, height = 4)
 Before we carry out the formal analysis of our dataset, we will at last calculate read depths (i.e. the average number of reads mapping to a given position) and coverage (the proportion of the genome covered by at least one read) for each genomic region and library using [samtools](https://www.htslib.org/). Furthermore, we will calculate the ratio of *Wolbachia* to *Drosophila* reads to obtain an estimate of the prevalence and relative bacterial titer in infected flies.
 
 ```bash
-## create output folder
+# Calculate read depths and coverage for each genomic region and library using samtools.
 mkdir -p ${WD}/results/ReadDepths && cd ${WD}/results/ReadDepths
 
-## Make header line
+# Make header line
 printf "library\trname\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\n" \
     >${WD}/results/ReadDepths/ReadDepths.txt
 
-## Loop through libraries and calculate summary statistics for each library and genomic region
+# Loop through libraries and calculate summary statistics
 for i in ${WD}/results/minimap2/*.bam; do
-
-    ## get the library name
     base=$(basename $i .bam)
 
-    ## calculate statistics
+    echo """
+    #!/bin/sh
+
+    ## name of Job
+    #PBS -N coverage_${base}
+
+    ## Redirect output stream to this file.
+    #PBS -o ${WD}/results/ReadDepths/${base}_coverage.log
+
+    ## Stream Standard Output AND Standard Error to outputfile (see above)
+    #PBS -j oe
+
+    ## Select a maximum of 5 cores and 50gb of RAM
+    #PBS -l select=1:ncpus=5:mem=20gb
+
+    ##### load dependencies
+    source /opt/anaconda3/etc/profile.d/conda.sh
+    conda activate ${WD}/scripts/programs
+
     samtools coverage \
         --reference ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
-        ${i} |
-        awk -v base=${base} 'BEGIN{OFS="\t"} NR >1 {print base, $0}' \
+        $i |
+        awk -v base=\"$base\" 'BEGIN{OFS=\"\t\"} NR >1 {print base, \$0}' \
             >>${WD}/results/ReadDepths/ReadDepths.txt
+    """ >${WD}/QSUB/coverage_${base}.sh
+
+    # send to OpenPBS
+    qsub -W block=true ${WD}/QSUB/coverage_${base}.sh
+
 done
 ```
 
 Now, we can plot and compare read depths and coverages in R.
 
 ```bash
-
-## plot read depths, coverages and relative bacterial titer
-${WD}/scripts/programs/bin/Rscript -e "
-
+# Plot read depths, coverages, and relative bacterial titer in R
+"${WD}/scripts/programs/bin/Rscript" -e "
 library(tidyverse)
-
-## Load the data
 data <- read.table('${WD}/results/ReadDepths/ReadDepths.txt', header = TRUE, sep = '\t')
-# Convert the library and rname columns to factors with specific levels
 data\$library <- factor(data\$library, levels = c('18DZ5', '19SL15', '19SL3', 'DGRP338', 'DGRP370', 'ZI268'))
-# Convert the rname column to a factor with specific levels
 data\$rname <- factor(data\$rname, levels = c('2L', 'wMel', 'mitochondrion_genome'))
-# rename the rname column to Region
 data\$rname <- recode(data\$rname, '2L' = '2L', 'wMel' = 'Wolbachia', 'mitochondrion_genome' = 'Mitochondrion')
-
-# plot the coverage distribution by region and library
-ggplot(data, aes(x = rname, y = coverage, fill = library)) +
+PLOT<-ggplot(data, aes(x = rname, y = coverage, fill = library)) +
     geom_bar(stat = 'identity', position = 'dodge') +
     labs(title = 'Coverage Distribution by Region and Library',
          x = 'Region',
@@ -464,13 +617,9 @@ ggplot(data, aes(x = rname, y = coverage, fill = library)) +
     facet_grid(.~library , scales = 'free_y') +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))+ 
     theme(legend.position = 'bottom')
-
-# Save the plot as PDF and PNG
-ggsave('${WD}/results/ReadDepths/coverage_distribution.pdf', width = 8, height = 6)
-ggsave('${WD}/results/ReadDepths/coverage_distribution.png', width = 8, height = 6)
-
-# plot the read depths and coverages and the ratio or read depths for 2L and wMel
-ggplot(data, aes(x = rname, y = numreads, fill = library)) +
+ggsave('${WD}/results/ReadDepths/coverage_distribution.pdf',PLOT, width = 8, height = 6)
+ggsave('${WD}/results/ReadDepths/coverage_distribution.png',PLOT, width = 8, height = 6)
+PLOT<-ggplot(data, aes(x = rname, y = numreads, fill = library)) +
     geom_bar(stat = 'identity', position = 'dodge') +
     labs(title = 'Read Depth Distribution by Region and Library',
          x = 'Region',
@@ -479,17 +628,10 @@ ggplot(data, aes(x = rname, y = numreads, fill = library)) +
     facet_grid(.~library , scales = 'free_y') +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))+ 
     theme(legend.position = 'bottom')
-
-# Save the plot as PDF and PNG
-ggsave('${WD}/results/ReadDepths/read_depth_distribution.pdf', width = 8, height = 6)
-ggsave('${WD}/results/ReadDepths/read_depth_distribution.png', width = 8, height = 6)
-
-## plot the ratio of read depths for Wolbachia and 2L
-# First, calculate the ratio of read depths for Wolbachia and 2L
+ggsave('${WD}/results/ReadDepths/read_depth_distribution.pdf', PLOT,width = 8, height = 6)
+ggsave('${WD}/results/ReadDepths/read_depth_distribution.png', PLOT,width = 8, height = 6)
 data\$ratio <- ifelse(data\$rname == 'Wolbachia', data\$numreads / data[data\$rname == '2L', ]\$numreads, NA)
-
-# plot the ratio of read depths for Wolbachia and 2L
-ggplot(data, aes(x = library, y = ratio, fill = library)) +
+PLOT<-ggplot(data, aes(x = library, y = ratio, fill = library)) +
     geom_bar(stat = 'identity', position = 'dodge') +
     labs(title = 'Ratio of Read Depths for Wolbachia and 2L',
          x = 'Library',
@@ -497,10 +639,8 @@ ggplot(data, aes(x = library, y = ratio, fill = library)) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))+ 
     theme(legend.position = 'bottom')
-
-# Save the plot as PDF and PNG
-ggsave('${WD}/results/ReadDepths/read_depth_ratio.pdf', width = 8, height = 6)
-ggsave('${WD}/results/ReadDepths/read_depth_ratio.png', width = 8, height = 6)
+ggsave('${WD}/results/ReadDepths/read_depth_ratio.pdf',PLOT, width = 8, height = 6)
+ggsave('${WD}/results/ReadDepths/read_depth_ratio.png',PLOT, width = 8, height = 6)
 "
 ```
 
@@ -531,19 +671,45 @@ At first we are liberal and even include the historic sample with very low cover
 
 ```bash
 
+# Call SNP variants for each genomic region and perform phylogenetic analysis using the rescaled bam files from mapDamage2.
+mkdir -p ${WD}/results/SNPs && cd ${WD}/results/SNPs
+
+##### load dependencies
+source /opt/anaconda3/etc/profile.d/conda.sh
+conda activate ${WD}/scripts/programs
+
 ## Use rescaled BAM files for SNP calling
 >${WD}/results/minimap2/scaled_bam.list
 for i in ${WD}/results/mapDamage/*/*.rescaled.bam; do
-    echo $i >>${WD}/results/minimap2/scaled_bam.list
+    echo "$i" >>${WD}/results/minimap2/scaled_bam.list
 
-    ## make index for scaled BAM files
-    samtools index $i
+    ## make index for each rescaled BAM file
+    samtools index "$i"
 done
 
-## make output folder
-mkdir -p ${WD}/results/SNPs && cd ${WD}/results/SNPs
+conda deactivate
 
-## Diploid region (2L)
+## do the actual calling
+echo """
+#!/bin/sh
+
+## name of Job
+#PBS -N SNPcalling
+
+## Redirect output stream to this file.
+#PBS -o ${WD}/results/SNPs/SNPcalling.log
+
+## Stream Standard Output AND Standard Error to outputfile (see above)
+#PBS -j oe
+
+## Select a maximum of 5 cores and 50gb of RAM
+#PBS -l select=1:ncpus=5:mem=20gb
+
+##### load dependencies
+source /opt/anaconda3/etc/profile.d/conda.sh
+conda activate ${WD}/scripts/programs
+
+# Diploid region (2L)
 bcftools mpileup -Ou \
     -f ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
     -r 2L \
@@ -589,13 +755,18 @@ python3 ${WD}/scripts/HaploVCF2Phylip.py \
     --MaxPropGaps 0.5 \
     --MinCov 5 \
     >${WD}/results/SNPs/Wolbachia.phy
+
+""" >${WD}/QSUB/snp_calling.sh
+
+# send to OpenPBS
+qsub ${WD}/QSUB/snp_calling.sh
 ```
 
-Visualize phylogenetic trees in R.
+Calculate NJ phylogenetic trees and visualize in R.
 
 ```bash
 
-## Make UPGMA trees based on genetic distance
+# Visualize phylogenetic trees in R
 ${WD}/scripts/programs/bin/Rscript -e "
 library(ggtree)
 library(phangorn)
@@ -603,15 +774,11 @@ library(phytools)
 library(ape)
 library(tidyverse)
 library(patchwork)
-
-## read input data
 input_files <- c(
   '${WD}/results/SNPs/2L.phy',
   '${WD}/results/SNPs/mito.phy',
   '${WD}/results/SNPs/Wolbachia.phy'
 )
-
-## adjust titles
 titles <- c('2L 100K Region', 'Mitochondrion', 'Wolbachia')
 plots <- list()
 for (i in seq_along(input_files)) {

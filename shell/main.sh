@@ -146,7 +146,6 @@ firefox ${WD}/data/trimmed_reads/ZI268.html
 ################################################################################
 
 # Download mitochondrial genomes for contamination screening and build a BLAST database.
-
 mkdir -p ${WD}/data/refseq/contamination && cd ${WD}/data/refseq/contamination
 
 # Download and rename mitochondrial genomes
@@ -361,7 +360,6 @@ qsub ${WD}/QSUB/ecmsd_19SL3.sh
 ################################################################################
 
 # Map reads to reference genomes using minimap2 and analyze DNA damage patterns with mapDamage2.
-
 mkdir -p ${WD}/results/minimap2 && cd ${WD}/results/minimap2
 while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
     if [[ ${Library} != "Library" ]]; then
@@ -418,9 +416,7 @@ while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
 done <${WD}/data/datasets.csv
 
 # Run mapDamage2 to investigate deamination patterns
-
 mkdir -p ${WD}/results/mapDamage && cd ${WD}/results/mapDamage
-
 while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
     if [[ ${Library} != "Library" ]]; then
 
@@ -513,7 +509,6 @@ ggsave('${WD}/results/mapDamage/MapDamage_summary.png',PLOT, width = 8, height =
 ################################################################################
 
 # Calculate read depths and coverage for each genomic region and library using samtools.
-
 mkdir -p ${WD}/results/ReadDepths && cd ${WD}/results/ReadDepths
 
 # Make header line
@@ -607,7 +602,6 @@ ggsave('${WD}/results/ReadDepths/read_depth_ratio.png',PLOT, width = 8, height =
 ################################################################################
 
 # Call SNP variants for each genomic region and perform phylogenetic analysis using the rescaled bam files from mapDamage2.
-
 mkdir -p ${WD}/results/SNPs && cd ${WD}/results/SNPs
 
 ##### load dependencies
