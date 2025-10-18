@@ -49,7 +49,7 @@ cp -r /media/scratch/Museomics_WS_stuff/scripts .
 mkdir -p ${WD}/{data,results,QSUB}
 mkdir -p ${WD}/data/raw_reads
 
-# Untar the compressed folder within ${WD}/data
+# Copy the raw reads and untar the compressed folder within ${WD}/data
 cp /media/scratch/Museomics_WS_stuff/data/raw_reads.tar.gz data/
 tar -xzf ${WD}/data/raw_reads.tar.gz -C ${WD}/data/raw_reads
 
