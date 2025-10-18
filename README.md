@@ -17,12 +17,23 @@ This document describes the bioinformatics workflow for processing and analyzing
 
 ## 1. Preparation
 
+### (a) Clone this repository
+
+As a very first step, we log on to the server and fire up Visual Studio Code (VSCode) to clone this repository:
+
+```bash
+## go to home directory
+cd
+
+# clone repository
+git clone https://github.com/nhmvienna/Workshop_VI_Museomics
+```
+
 ### (b) Copy required software
 
 ```bash
 # Set Working directory
-WD="<your/path/to/Workshop_VI_Museomics>"
-# WD="/home/mkapun/github/Workshop_VI_Museomics"
+WD="~/Workshop_VI_Museomics"
 
 # Go to working directory
 cd ${WD}
@@ -31,7 +42,7 @@ cd ${WD}
 cp -r /media/scratch/Museomics_WS_stuff/scripts .
 ```
 
-### (b) Download and decompress the raw input FASTQ data
+### (c) Download and decompress the raw input FASTQ data
 
 ```bash
 ## Copy and extract raw sequencing reads.
