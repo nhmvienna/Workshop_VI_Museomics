@@ -35,6 +35,7 @@ tar -xzf ${WD}/data/raw_reads.tar.gz -C ${WD}/data/raw_reads
 mkdir -p ${WD}/results/mapDamage
 cp /media/scratch/Museomics_WS_stuff/data/mapDamage2.tar.gz data/
 tar -xzf ${WD}/data/mapDamage2.tar.gz -C ${WD}/results/mapDamage
+```
 
 ## Datasets
 
