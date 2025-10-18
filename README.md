@@ -29,11 +29,13 @@ cd
 git clone https://github.com/nhmvienna/Workshop_VI_Museomics
 ```
 
+Now add this repository to your VSCode workspace and open the `README.md` file.
+
 ### (b) Copy required software
 
 ```bash
 # Set Working directory
-WD="~/Workshop_VI_Museomics"
+WD=~/Workshop_VI_Museomics
 
 # Go to working directory
 cd ${WD}
