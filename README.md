@@ -1,6 +1,6 @@
 # Museomics Workshop 2025: Bioinformatics Pipeline
 
-This document describes the bioinformatics workflow for processing and analyzing sequencing data for the Museomics Workshop 2025. The slides to this workshop can be found [here](data/Museomics_Workshop_StAndrews_2025.pdf).
+This document describes the bioinformatics workflow for processing and analyzing sequencing data for the Museomics Workshop 2025. The slides to this workshop can be found [here](data/Workshop_VI_Museomics.pdf).
 
 ---
 
