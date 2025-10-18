@@ -4,6 +4,17 @@ This document describes the bioinformatics workflow for processing and analyzing
 
 ---
 
+## Datasets
+
+| Library  | Name    | Age  | City     | Country | Wolbachia    | Type     | SRA        |
+|----------|---------|------|----------|---------|---------|----------|------------|
+| DGRP370  | DGRP370 | 2003 | Raleigh  | USA     | wMel    | recent   | SRR834539  |
+| DGRP338  | DGRP338 | 2003 | Raleigh  | USA     | wMelCS  | recent   | SRR834513  |
+| ZI268    | ZI268   | 2003 | Ziawonga | Zambia  | wMel    | recent   | SRR189425  |
+| HG_15    | 19SL15  | 1933 | Lund     | Sweden  | unknown | historic | SRR23876580|
+| HG0027   | 19SL3   | 1933 | Lund     | Sweden  | unknown | historic | SRR23876574|
+| HG0029   | 18DZ5   | 1899 | Zealand  | Denmark | unknown | historic | SRR23876565|
+
 ## 1. Preparation
 
 ### (b) Copy required software
@@ -36,17 +47,6 @@ mkdir -p ${WD}/results/mapDamage
 cp /media/scratch/Museomics_WS_stuff/data/mapDamage2.tar.gz data/
 tar -xzf ${WD}/data/mapDamage2.tar.gz -C ${WD}/results/mapDamage
 ```
-
-## Datasets
-
-| Library  | Name    | Age  | City     | Country | Wolbachia    | Type     | SRA        |
-|----------|---------|------|----------|---------|---------|----------|------------|
-| DGRP370  | DGRP370 | 2003 | Raleigh  | USA     | wMel    | recent   | SRR834539  |
-| DGRP338  | DGRP338 | 2003 | Raleigh  | USA     | wMelCS  | recent   | SRR834513  |
-| ZI268    | ZI268   | 2003 | Ziawonga | Zambia  | wMel    | recent   | SRR189425  |
-| HG_15    | 19SL15  | 1933 | Lund     | Sweden  | unknown | historic | SRR23876580|
-| HG0027   | 19SL3   | 1933 | Lund     | Sweden  | unknown | historic | SRR23876574|
-| HG0029   | 18DZ5   | 1899 | Zealand  | Denmark | unknown | historic | SRR23876565|
 
 ## 2. Preview Raw FASTQ Data
 
