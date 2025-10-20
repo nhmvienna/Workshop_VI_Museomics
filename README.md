@@ -52,7 +52,7 @@ mkdir -p ${WD}/{data,results,QSUB}
 mkdir -p ${WD}/data/raw_reads
 
 # Copy the raw reads and untar the compressed folder within ${WD}/data
-cp /media/scratch/Museomics_WS_stuff/data/raw_reads.tar.gz data/
+cp /media/scratch/Museomics_WS_stuff/data/raw_reads.tar.gz ${WD}/data/
 tar -xzf ${WD}/data/raw_reads.tar.gz -C ${WD}/data/raw_reads
 
 ## Optionally download mapDamage2 results
@@ -384,6 +384,8 @@ bash /media/inter/pipelines/ECMSD/shell/ECMSD.sh \
 qsub ${WD}/QSUB/ecmsd_19SL3.sh
 ```
 
+![ECMSD](results/contamination/ECMSD/19SL3/mapping/Mito_summary_genus_ReadLengths.png)
+
 My newly developed ECMSD pipeline automates this test for contamination and compares the reads against ALL avaiailable mitochondrial genomes and uses the NCBI taxonomic backbone for hierarchical clustering by taxonomic level. Check this out: <https://github.com/capoony/ECMSD>
 
 ---
@@ -421,15 +423,15 @@ while IFS="," read -r Library Name Age City Country Wolb Type SRA; do
         ## map reads to reference genome
         minimap2 -ax sr --secondary=no -t 5 \
             ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
-            ${WD}/data/trimmed_reads/${Name}_1_trimmed.fastq.gz \
-            ${WD}/data/trimmed_reads/${Name}_2_trimmed.fastq.gz |
+            ${WD}/data/raw_reads/${Name}_2L_100K_1_trimmed.fastq.gz \
+            ${WD}/data/raw_reads/${Name}_2L_100K_2_trimmed.fastq.gz |
             samtools view -bS -F 4 - |
             samtools sort -o ${WD}/results/minimap2/${Name}_PE.bam
         samtools index ${WD}/results/minimap2/${Name}_PE.bam
 
         minimap2 -ax sr --secondary=no -t 5 \
             ${WD}/data/refseq/dmel/dmel_wMel_2L_100K.fasta.gz \
-            ${WD}/data/trimmed_reads/${Name}_merged.fastq.gz |
+            ${WD}/data/raw_reads/${Name}_2L_100K_merged.fastq.gz |
             samtools view -bS -F 4 - |
             samtools sort -o ${WD}/results/minimap2/${Name}_merged.bam
         samtools index ${WD}/results/minimap2/${Name}_merged.bam
